@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-ربات سرگرمی و محتوای زرد  تلگرام (نسخه ۱۸+ نهایی)
+ربات سرگرمی و محتوای زرد تلگرام (نسخه ۱۸+ نهایی)
 """
 
 import os
@@ -24,7 +24,7 @@ SIGNATURE = "@MediaZard | مدیا زرد"
 AI_MODEL    = "openai/gpt-4o-mini"
 AI_ENDPOINT = "https://models.github.ai/inference/chat/completions"
 
-# منابع با تمرکز قوی ۱۸+
+# منابع قوی ۱۸+
 RSS_FEEDS = [
     "https://www.tmz.com/rss.xml",
     "https://pagesix.com/feed/",
@@ -55,12 +55,8 @@ UA = {"User-Agent": "Mozilla/5.0 (compatible; fun-bot/1.0; +https://github.com)"
 # ═══════════════════════════ پرامپت سردبیر ═══════════════════════════
 SYSTEM_PROMPT = """تو سردبیر یه کانال زرد ۱۸+ تلگرامی هستی. مخاطب‌ها عاشق محتوای بصری جذاب و داغ هستن.
 
-اولویت انتخاب:
-۱) سوژه‌های بصری قوی ۱۸+ (مدل، استایل سکسی، عکس و ویدیو داغ، پورنوگرافی، سلبریتی)
-۲) حاشیه رابطه، جدایی، استایل، بدن
-۳) هرچیزی که عکس یا ویدیو خوب داشته باشه
-
-سبک: خیلی صمیمی و خودمونی مثل رفیق («داداش ببین»، «این ترکوند»، «خفنه»)
+اولویت: سوژه‌های بصری قوی ۱۸+ (مدل، استایل، عکس/ویدیو داغ، پورنوگرافی)
+سبک: خیلی صمیمی و خودمونی («داداش ببین»، «این ترکوند»، «خفنه»)
 با منبع شروع کن.
 
 خروجی فقط JSON:
@@ -93,6 +89,12 @@ def save_state(state):
 def domain_of(url):
     m = re.search(r"https?://([^/]+)/?", url)
     return m.group(1) if m else url
+
+def is_persian(text):
+    if not text:
+        return False
+    fa = len(re.findall(r"[\u0600-\u06FF]", text))
+    return fa > len(text) * 0.2
 
 def tokenize(text):
     text = re.sub(r"[^\w\s]", " ", (text or "").lower())
