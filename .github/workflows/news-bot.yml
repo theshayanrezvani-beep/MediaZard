@@ -1,20 +1,16 @@
 name: News Bot
 
 on:
-  # تریگرِ اصلی: cron-job.org این را از طریقِ repository_dispatch صدا می‌زند
   repository_dispatch:
     types: [run-bot]
-  # اجرای دستی از تبِ Actions
   workflow_dispatch:
-  # تریگرِ پشتیبانِ کم‌تکرار (هر ۶ ساعت) — اگر cron-job.org قطع شد، ربات نخوابد
   schedule:
     - cron: "0 */6 * * *"
 
 permissions:
-  contents: write   # برای commitِ seen.json
-  models: read      # برای استفاده از GitHub Models
+  contents: write
+  models: read
 
-# اجراها روی هم نیفتند (تا seen.json خراب نشود)
 concurrency:
   group: news-bot
   cancel-in-progress: false
@@ -25,6 +21,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: main
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -44,6 +42,25 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          # اگر به هر دلیلی فایل ساخته نشد، یه نسخه‌ی خالی بساز تا git گیر نکند
+          [ -f seen.json ] || echo '{"seen":[],"recent":[]}' > seen.json
           git add seen.json
-          git diff --staged --quiet || git commit -m "update seen.json [skip ci]"
-          git push
+          if git diff --staged --quiet; then
+            echo "تغییری در seen.json نبود"
+            exit 0
+          fi
+          git commit -m "update seen.json [skip ci]"
+          # قبل از push با ریموت sync کن و چند بار retry بزن
+          # (جلوی خطای 'fetch first' موقعِ re-run یا اجراهای نزدیک‌به‌هم را می‌گیرد)
+          for i in 1 2 3 4 5; do
+            if git push origin HEAD:main; then
+              echo "✅ push شد"
+              exit 0
+            fi
+            echo "push رد شد؛ sync با ریموت و تلاش دوباره ($i)..."
+            git fetch origin main
+            git merge -X ours --no-edit origin/main || true
+            sleep 4
+          done
+          echo "❌ push بعد از چند تلاش ناموفق ماند"
+          exit 1
