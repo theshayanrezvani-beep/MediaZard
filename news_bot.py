@@ -169,6 +169,23 @@ def get_all_media(chosen):
     
     return images[:5], videos[:2]  # حداکثر ۵ عکس و ۲ ویدیو
 
+def download_capped(url, cap):
+    """دانلود با محدودیت حجم"""
+    try:
+        with requests.get(url, headers=UA, stream=True, timeout=40) as r:
+            r.raise_for_status()
+            cl = r.headers.get("Content-Length")
+            if cl and int(cl) > cap:
+                return None
+            buf = b""
+            for chunk in r.iter_content(65536):
+                buf += chunk
+                if len(buf) > cap:
+                    return None
+            return buf
+    except Exception:
+        return None
+
 def _meta(page, prop):
     """استخراجِ مقدارِ یک متاتگ og:* با regex (هر دو ترتیبِ property/content)."""
     p = re.escape(prop)
@@ -347,13 +364,12 @@ def fallback_choice(candidates, recent):
 def build_post(choice):
     title = html.escape(choice["title_fa"])
     summary = html.escape(choice["summary_fa"])
-    lead = "🔥" if choice["hot"] else "✨"
+    lead = "🔥" if choice.get("hot", False) else "✨"
     return (
         f"{lead} <b>{title}</b>\n\n"
         f"<blockquote expandable>{summary}</blockquote>\n\n"
         f"{SIGNATURE}"
     )
-
 
 # ═══════════════════════════ ارسال به تلگرام ═══════════════════════════
 def tg_url(method):
@@ -410,6 +426,45 @@ def download_capped(url, cap):
     except Exception:
         return None
 
+def tg_url(method):
+    return f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/{method}"
+
+def tg_send_message(text):
+    try:
+        r = requests.post(tg_url("sendMessage"), data={
+            "chat_id": CHANNEL, "text": text,
+            "parse_mode": "HTML", "disable_web_page_preview": "true",
+        }, timeout=30)
+        return r.json().get("ok", False)
+    except Exception:
+        return False
+
+def tg_send_photo(photo_url, caption):
+    try:
+        if len(caption or "") > 1024:
+            requests.post(tg_url("sendPhoto"), data={"chat_id": CHANNEL, "photo": photo_url}, timeout=30)
+            return tg_send_message(caption)
+        r = requests.post(tg_url("sendPhoto"), data={
+            "chat_id": CHANNEL, "photo": photo_url,
+            "caption": caption, "parse_mode": "HTML",
+        }, timeout=30)
+        return r.json().get("ok", False)
+    except Exception:
+        return False
+
+def tg_send_video(data, caption):
+    try:
+        d = {"chat_id": CHANNEL, "parse_mode": "HTML"}
+        if len(caption or "") <= 1024:
+            d["caption"] = caption
+        r = requests.post(tg_url("sendVideo"), data=d,
+                          files={"video": ("video.mp4", data)}, timeout=180)
+        ok = r.json().get("ok", False)
+        if ok and len(caption or "") > 1024:
+            tg_send_message(caption)
+        return ok
+    except Exception:
+        return False
 
 def tg_send_video(data, caption):
     d = {"chat_id": CHANNEL, "parse_mode": "HTML"}
