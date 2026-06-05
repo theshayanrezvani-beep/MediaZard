@@ -32,18 +32,17 @@ AI_ENDPOINT = "https://models.github.ai/inference/chat/completions"
 
 # منابع جدید — تمرکز روی محتوای بصری و زرد داغ
 RSS_FEEDS = [
-    "https://www.tmz.com/rss.xml",                       # TMZ - وایرال و داغ
-    "https://pagesix.com/feed/",                         # Page Six - گاسیپ قوی + عکس
-    "https://www.dailymail.co.uk/tvshowbiz/index.rss",   # DailyMail Showbiz - عالی برای عکس و ویدیو
-    "https://www.justjared.com/feed/",                   # JustJared - عکس‌های سلبریتی زیاد
-    "https://hollywoodlife.com/feed/",                   # HollywoodLife
-    "https://bossip.com/feed/",                          # Bossip
-    "https://www.eonline.com/news/rss",                  # E! News - ویدیو و عکس عالی
-    "https://www.etonline.com/news/rss",                 # Entertainment Tonight
-    "https://toofab.com/feed/",                          # TooFab - گاسیپ داغ
-    "https://www.perezhilton.com/feed/",                 # Perez Hilton
+    "https://www.tmz.com/rss.xml",
+    "https://pagesix.com/feed/",
+    "https://www.dailymail.co.uk/tvshowbiz/index.rss",
+    "https://www.justjared.com/feed/",
+    "https://hollywoodlife.com/feed/",
+    "https://bossip.com/feed/",
+    "https://www.eonline.com/news/rss",
+    "https://www.etonline.com/news/rss",
+    "https://toofab.com/feed/",
+    "https://www.perezhilton.com/feed/",
 ]
-
 NUM_CANDIDATES     = 12
 RECENT_TITLES_KEEP = 40
 SEEN_IDS_KEEP      = 1000
@@ -56,31 +55,41 @@ STATE_FILE = "seen.json"
 UA = {"User-Agent": "Mozilla/5.0 (compatible; fun-bot/1.0; +https://github.com)"}
 
 # ═══════════════════════════ پرامپتِ سردبیر (لحن Efsha) ═══════════════════════════
-SYSTEM_PROMPT = """تو سردبیرِ یه کانالِ سرگرمی و محتوای زردِ پرمخاطبِ تلگرامی ۱۸+ هستی. کارت انتخاب آب‌دارترین سوژه با جلوه بصری قوی و بازنویسی داغ و محاوره‌ای است.
+SYSTEM_PROMPT = """تو سردبیر یه کانال زرد ۱۸+ پرمخاطب تلگرامی هستی. باید آب‌دارترین و بصری‌ترین سوژه رو انتخاب کنی و خیلی داغ و محاوره‌ای بنویسی.
 
 اولویت انتخاب:
-۱) سوژه‌های وایرال، سکسی، استایل، بدن، رابطه و حاشیه‌های بصری قوی
-۲) سلبریتی‌های داغ، مدل‌ها، جدایی، شایعه‌های جذاب
-۳) هرچیزی که عکس/ویدیوی خفن داشته باشه و مخاطب ۱۸+ حال کنه
+۱) محتوای بصری قوی (عکس/ویدیو سکسی، استایل، بدن، رابطه، جدایی، وایرال)
+۲) حاشیه‌های سلبریتی و مدل‌ها
+۳) هر چیزی که مخاطب ۱۸+ حال کنه
 
-سبکِ نگارش (مهم‌ترین بخش) — دقیقاً مثل کانال‌های ۱۸+ زرد پرمخاطب:
-- فارسی محاوره‌ای خیلی صمیمی، داغ و کلیک‌بیت قوی؛ مثل حرف زدن تو گروه رفیقا: «دیگه»، «ترکوند»، «آتیش»، «سکسی»، «جهانبخت»، «چالشتو»، «داغه»، «اینو ببین»، «حالت می‌ده».
-- همیشه با لید منبع شروع کن: «پیج‌سیکس:»، «دیلی‌میل:»، «TMZ:» و سریع برو سر جذاب‌ترین بخش بصری/حاشیه‌ای.
-- روی جنبه بصری، استایل، بدن، رابطه و وایرال بودن تأکید کن (بدون vulgar).
-- ایموجی زیاد و آتشین بذار: 🔥💦😈❤️🍑💋😱✨
-- کامل بگو چی شد، چی پوشیده، چه عکس/ویدیویی هست و چرا همه دارن می‌بیننش.
-- شایعه رو «شایعه» بگو. هیچی از خودت اضافه نکن.
-- طول: ۲ تا ۵ جمله پر انرژی و تحریک‌کننده.
-- این کلیشه‌ها ممنوعن: «شایان ذکر است»، «گفتنی است» و غیره.
+سبک نگارش (دقیقاً مثل Efsha):
+- فارسی محاوره‌ای داغ و کلیک‌بیت: «ترکوند»، «آتیش»، «چالشتو»، «جهانبخت»، «سکسی داغه»، «اینو ببین»، «حالت می‌ده»
+- با اسم منبع شروع کن (پیج‌سیکس:، دیلی‌میل:، TMZ:)
+- روی جنبه بصری و جذابیت تأکید کن
+- ایموجی زیاد: 🔥💦😈🍑💋😱✨❤️
+- طول ۲ تا ۵ جمله پر انرژی
+- شایعه رو شایعه بنویس
 
-hot=true فقط برای سوژه‌های واقعاً آتشین و وایرال.
+hot=true فقط برای سوژه‌های واقعاً آتشین.
 
 خروجی فقط JSON:
 {"index": <شماره یا -1>, "title_fa": "...", "summary_fa": "...", "hot": true/false}"""
 
-# ... (بقیه کد بدون تغییر اساسی — فقط توابع جدید اضافه شده)
+# کلماتِ پرتکرار که در محاسبه‌ی شباهت نادیده گرفته می‌شوند
+STOPWORDS = set((
+    "و در به از که این آن را با برای تا یک رو تو هم می اون یه قراره دیگه اینا اونا "
+    "خیلیا های ها بر روی یا کرد شد گفت می‌گه می‌کنه است بود شده یک دو سه "
+    "the a an of to in on for and or is are was were be by at with from as that this "
+    "it its has have had will would new says said after over amid star says how why"
+).split())
 
-# (برای جلوگیری از طولانی شدن پیام، بقیه کد رو اینجا نمی‌نویسم. فایل کامل رو در ادامه برات آماده کردم)
+# کلمات پرتکرار
+STOPWORDS = set((
+    "و در به از که این آن را با برای تا یک رو تو هم می اون یه قراره دیگه اینا اونا "
+    "خیلیا های ها بر روی یا کرد شد گفت می‌گه می‌کنه است بود شده یک دو سه "
+    "the a an of to in on for and or is are was were be by at with from as that this "
+    "it its has have had will would new says said after over amid star says how why"
+).split())
 
 # ═══════════════════════════ حالت (seen.json) ═══════════════════════════
 def load_state():
@@ -140,39 +149,25 @@ def is_duplicate(title, recent_titles):
 
 
 # ═══════════════════════════ خواندنِ منابع ═══════════════════════════
-def get_entry_media(entry):
-    """استخراجِ بهترین عکس/ویدیو از خودِ آیتمِ فید."""
-    image = None
-    videos = []  # (height, bitrate, url)
-    for mc in entry.get("media_content", []):
-        u = mc.get("url")
-        t = (mc.get("type") or "")
-        if not u:
-            continue
-        h = int(mc.get("height") or 0) if str(mc.get("height", "")).isdigit() else 0
-        br = int(mc.get("bitrate") or 0) if str(mc.get("bitrate", "")).isdigit() else 0
-        if "video" in t or u.lower().endswith((".mp4", ".m4v", ".mov")):
-            videos.append((h, br, u))
-        elif "image" in t and not image:
-            image = u
-    for mt in entry.get("media_thumbnail", []):
-        if mt.get("url") and not image:
-            image = mt["url"]
-    for enc in entry.get("enclosures", []):
-        u = enc.get("href") or enc.get("url")
-        t = enc.get("type", "")
-        if not u:
-            continue
-        if "video" in t:
-            videos.append((0, 0, u))
-        elif "image" in t and not image:
-            image = u
-    video = None
-    if videos:
-        videos.sort(key=lambda x: (x[0], x[1]), reverse=True)  # باکیفیت‌ترین
-        video = videos[0][2]
-    return image, video
-
+def get_all_media(chosen):
+    """جمع‌آوری همه عکس و ویدیوهای خوب"""
+    images = []
+    videos = []
+    
+    if chosen.get("feed_image"):
+        images.append(chosen["feed_image"])
+    if chosen.get("feed_video"):
+        videos.append(chosen["feed_video"])
+    if chosen.get("og_image"):
+        images.append(chosen["og_image"])
+    if chosen.get("og_video"):
+        videos.append(chosen["og_video"])
+    
+    # حذف تکراری‌ها
+    images = list(dict.fromkeys([u for u in images if u]))
+    videos = list(dict.fromkeys([u for u in videos if u]))
+    
+    return images[:5], videos[:2]  # حداکثر ۵ عکس و ۲ ویدیو
 
 def _meta(page, prop):
     """استخراجِ مقدارِ یک متاتگ og:* با regex (هر دو ترتیبِ property/content)."""
@@ -436,21 +431,29 @@ def tg_send_video(data, caption):
 
 
 def publish(post, chosen):
-    """اولویتِ رسانه: ویدیو > عکسِ باکیفیت > فقط‌متن.
-    برای کیفیتِ بهتر، اول عکسِ full-resِ صفحه (og:image) رو امتحان می‌کنه،
-    بعد عکسِ فید."""
-    video_url = chosen.get("feed_video") or chosen.get("og_video")
-    image_url = chosen.get("og_image") or chosen.get("feed_image")
-    if video_url:
-        data = download_capped(video_url, MAX_VIDEO_BYTES)
-        if data and tg_send_video(data, post):
-            return True
-        print("ℹ️  دانلود/آپلودِ ویدیو نشد — با لینک می‌فرستم")
-        return tg_send_message(post + f"\n\n🎬 {video_url}")
-    if image_url and tg_send_photo(image_url, post):
-        return True
-    return tg_send_message(post)
+    """ارسال همه رسانه‌ها (ویدیو + چند عکس)"""
+    images, videos = get_all_media(chosen)
+    success = False
+    original_post = post
 
+    # اول ویدیوها
+    for vid_url in videos:
+        data = download_capped(vid_url, MAX_VIDEO_BYTES)
+        if data and tg_send_video(data, post):
+            success = True
+            post = ""   # کپشن فقط برای اولین رسانه
+
+    # بعد عکس‌ها
+    for img_url in images:
+        if tg_send_photo(img_url, post if not success else ""):
+            success = True
+            post = ""
+
+    # اگر هیچ رسانه‌ای ارسال نشد، فقط متن بفرست
+    if not success:
+        return tg_send_message(original_post)
+    
+    return True
 
 # ═══════════════════════════ main ═══════════════════════════
 def main():
