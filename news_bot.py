@@ -36,10 +36,14 @@ RSS_FEEDS = [
     "https://radaronline.com/feed/",
     "https://www.maxim.com/feed",
     "https://www.playboy.com/rss",
-    "https://www.cosmopolitan.com/rss/",
+    # پورنوگرافی و محتوای ۱۸+ قوی
     "https://www.pornhub.com/rss",
     "https://www.xvideos.com/rss",
     "https://www.xnxx.com/rss",
+    "https://www.redtube.com/rss",
+    "https://www.youporn.com/rss",
+    "https://www.brazzers.com/rss", 
+    "https://www.realitykings.com/rss",
 ]
 
 NUM_CANDIDATES     = 20
@@ -53,15 +57,19 @@ STATE_FILE = "seen.json"
 UA = {"User-Agent": "Mozilla/5.0 (compatible; fun-bot/1.0; +https://github.com)"}
 
 # ═══════════════════════════ پرامپت سردبیر ═══════════════════════════
-SYSTEM_PROMPT = """تو سردبیر یه کانال زرد ۱۸+ تلگرامی هستی. مخاطب‌ها عاشق محتوای بصری جذاب و داغ هستن.
+SYSTEM_PROMPT = """تو سردبیر یه کانال زرد ۱۸+ تلگرامی هستی. مخاطب‌ها عاشق محتوای بصری داغ و پورنوگرافی هستن.
 
-اولویت: سوژه‌های بصری قوی ۱۸+ (مدل، استایل، عکس/ویدیو داغ، پورنوگرافی)
-سبک: خیلی صمیمی و خودمونی («داداش ببین»، «این ترکوند»، «خفنه»)
-با منبع شروع کن.
+اولویت: هر سوژه بصری قوی ۱۸+ و پورن (مدل، استایل سکسی، ویدیو و عکس داغ)
+
+سبک نگارش: خیلی کوتاه (۱-۲ خط)، صمیمی و خودمونی مثل رفیق:
+«داداش اینو ببین»، «ترکوند»، «خفنه»، «وای»
+
+با منبع شروع کن و سریع بگو چی تو عکس/ویدیو هست.
+
+تقریبا همیشه یه سوژه انتخاب کن.
 
 خروجی فقط JSON:
 {"index": <شماره یا -1>, "title_fa": "...", "summary_fa": "...", "hot": true/false}"""
-
 STOPWORDS = set((
     "و در به از که این آن را با برای تا یک رو تو هم می اون یه قراره دیگه اینا اونا "
     "خیلیا های ها بر روی یا کرد شد گفت می‌گه می‌کنه است بود شده the a an of to in on for and or is are was were be by at with from as that this it its has have had will would new says said"
