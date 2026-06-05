@@ -26,8 +26,8 @@ TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 GITHUB_TOKEN       = os.environ.get("GITHUB_TOKEN", "")
 
 # ↓↓↓ فقط این دو خط را با مشخصاتِ کانالِ خودت عوض کن ↓↓↓
-CHANNEL   = "@yourchannel"                # آیدی کانال (ربات باید ادمینش باشد)
-SIGNATURE = "@yourchannel | اسم کانال"    # امضای پای هر پست
+CHANNEL   = "@MediaZard"                # آیدی کانال (ربات باید ادمینش باشد)
+SIGNATURE = "@MediaZard | مدیا زرد"    # امضای پای هر پست
 # ↑↑↑ ─────────────────────────────────────────────── ↑↑↑
 
 # مدلِ هوش مصنوعی — gpt-4o-mini ارزان‌تر / gpt-4o قوی‌تر
