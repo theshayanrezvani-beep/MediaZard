@@ -24,7 +24,7 @@ SIGNATURE = "@MediaZard | مدیا زرد"
 AI_MODEL    = "openai/gpt-4o-mini"
 AI_ENDPOINT = "https://models.github.ai/inference/chat/completions"
 
-# منابع جدید — تمرکز قوی روی محتوای بصری مثبت ۱۸+
+# منابع قوی — تمرکز روی محتوای بصری مثبت ۱۸+ و پورنوگرافی
 RSS_FEEDS = [
     "https://www.tmz.com/rss.xml",
     "https://pagesix.com/feed/",
@@ -33,42 +33,48 @@ RSS_FEEDS = [
     "https://hollywoodlife.com/feed/",
     "https://bossip.com/feed/",
     "https://www.eonline.com/news/rss",
-    "https://www.etonline.com/news/rss",
     "https://toofab.com/feed/",
-    "https://www.perezhilton.com/feed/",
-    "https://radaronline.com/feed/",           # محتوای بصری و حاشیه‌ای
-    "https://www.usmagazine.com/feed/",        # سلبریتی و استایل
-    "https://www.the-sun.com/feed/",           # تبلوید قوی
-    "https://fashionista.com/feed",            # فشن و استایل
-    "https://www.cosmopolitan.com/rss/",       # لایف‌استایل و رابطه
+    "https://www.the-sun.com/feed/",
+    "https://radaronline.com/feed/",
+    "https://www.usmagazine.com/feed/",
+    # منابع بیشتر بصری و ۱۸+
+    "https://www.cosmopolitan.com/rss/",
+    "https://fashionista.com/feed",
+    "https://www.maxim.com/feed",                    # Maxim (مردانه + بصری)
+    "https://www.playboy.com/rss",                   # Playboy
+    # منابع پورنوگرافی / Adult (RSS عمومی)
+    "https://www.pornhub.com/rss",                   # Pornhub (اگر RSS داشته باشه)
+    "https://www.xvideos.com/rss", 
+    "https://www.xnxx.com/rss",
+    "https://www.redtube.com/rss",
+    "https://www.youporn.com/rss",
 ]
-
-NUM_CANDIDATES     = 15   # افزایش دادم تا انتخاب بهتر باشه
+NUM_CANDIDATES     = 20   # افزایش دادم تا انتخاب بهتر باشه
 RECENT_TITLES_KEEP = 40
 SEEN_IDS_KEEP      = 1000
 ARTICLE_MAX_CHARS  = 1800
 MAX_VIDEO_BYTES    = 50 * 1024 * 1024
-JACCARD_THRESHOLD  = 0.5
-OVERLAP_THRESHOLD  = 0.6
+JACCARD_THRESHOLD  = 0.65
+OVERLAP_THRESHOLD  = 0.7
 
 STATE_FILE = "seen.json"
 UA = {"User-Agent": "Mozilla/5.0 (compatible; fun-bot/1.0; +https://github.com)"}
 
 # ═══════════════════════════ پرامپت سردبیر (صمیمی و خودمونی) ═══════════════════════════
-SYSTEM_PROMPT = """تو سردبیر یه کانال زرد سرگرمی تلگرامی هستی. مخاطب‌ها بالای ۱۸ سال هستن و عاشق محتوای بصری جذاب (عکس و ویدیو) هستن.
+SYSTEM_PROMPT = """تو سردبیر یه کانال زرد ۱۸+ تلگرامی هستی. مخاطب‌ها عاشق محتوای بصری جذاب و داغ هستن.
 
 اولویت انتخاب:
-۱) سوژه‌های بصری قوی مثبت ۱۸+ (استایل، عکس و ویدیو مدل‌ها، بدن، فشن، رابطه سلبریتی‌ها)
-۲) حاشیه‌های جذاب سلبریتی، جدایی، استایل داغ، زندگی شخصی
-۳) وایرال‌های تصویری خفن
+۱) هر سوژه بصری قوی ۱۸+ (مدل، استایل سکسی، ویدیو و عکس داغ، پورنوگرافی، سلبریتی)
+۲) حاشیه رابطه، جدایی، استایل، بدن
+۳) هرچیزی که عکس یا ویدیو خوب داشته باشه
 
-سبک نگارش (صمیمی و خودمونی):
-- مثل حرف زدن با رفیق: «داداش ببین»، «این دختره»، «ترکوند»، «خفنه»، «وای»، «دیگه»، «ببین چیکار کرده»
-- با منبع شروع کن: «پیج‌سیکس:»، «دیلی‌میل:»، «TMZ:»
-- بگو تو عکس یا ویدیو چی هست و چرا جالبه
-- ایموجی طبیعی: 🔥😍❤️✨😱
-- لحن راحت و صمیمی باشه
+سبک نگارش: خیلی صمیمی و خودمونی مثل رفیق:
+«داداش ببین»، «این یکی ترکوند»، «خفنه»، «وای»، «دیگه»
 
+با منبع شروع کن و بگو چی تو عکس/ویدیو هست.
+ایموجي: 🔥😍❤️💦✨
+
+تقریبا همیشه یه سوژه انتخاب کن مگر اینکه واقعاً بی‌کیفیت باشه.
 hot=true فقط برای سوژه‌های خیلی خوب و وایرال.
 
 خروجی فقط JSON:
