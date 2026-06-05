@@ -26,8 +26,8 @@ TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 GITHUB_TOKEN       = os.environ.get("GITHUB_TOKEN", "")
 
 # ↓↓↓ فقط این دو خط را با مشخصاتِ کانالِ خودت عوض کن ↓↓↓
-CHANNEL   = "@MediaZard"                # آیدی کانال (ربات باید ادمینش باشد)
-SIGNATURE = "@MediaZard | مدیا زرد"    # امضای پای هر پست
+CHANNEL   = "@yourchannel"                # آیدی کانال (ربات باید ادمینش باشد)
+SIGNATURE = "@yourchannel | اسم کانال"    # امضای پای هر پست
 # ↑↑↑ ─────────────────────────────────────────────── ↑↑↑
 
 # مدلِ هوش مصنوعی — gpt-4o-mini ارزان‌تر / gpt-4o قوی‌تر
@@ -36,18 +36,15 @@ AI_ENDPOINT = "https://models.github.ai/inference/chat/completions"
 
 # منابع RSS — سرگرمی، شوبیز، وایرال، لایف‌استایل و ورزش
 # همه استانداردِ RSS دارند و معمولاً برای ایران بازند.
-# هر فیدی که جواب نده خودکار رد می‌شود؛ هر وقت خواستی می‌تونی کم/زیاد کنی
-# (مثلاً برای حاشیه‌ی سلبریتیِ بیشتر: tmz.com/rss.xml یا pagesix.com/feed).
+# سایت‌های گاشیپِ سلبریتیِ متعارف که RSSِ عمومی دارن.
+# هر فیدی که جواب نده خودکار رد می‌شود.
 RSS_FEEDS = [
-    "https://feeds.bbci.co.uk/news/entertainment_and_arts/rss.xml",  # بی‌بی‌سی سرگرمی
-    "https://www.theguardian.com/culture/rss",                       # گاردین فرهنگ/سلبریتی
-    "https://www.theguardian.com/film/rss",                          # گاردین سینما
-    "https://www.theguardian.com/music/rss",                         # گاردین موسیقی
-    "https://www.theguardian.com/lifeandstyle/rss",                  # گاردین لایف‌استایل
-    "https://variety.com/feed/",                                     # ورایتی (شوبیز)
-    "https://mashable.com/feeds/rss/all",                            # مشابل (وایرال/اینترنتی)
-    "https://feeds.bbci.co.uk/sport/rss.xml",                        # بی‌بی‌سی ورزش
-    "https://www.theguardian.com/sport/rss",                         # گاردین ورزش
+    "https://www.tmz.com/rss.xml",                       # TMZ
+    "https://www.dailymail.co.uk/tvshowbiz/index.rss",   # دیلی‌میل (شوبیز)
+    "https://pagesix.com/feed/",                         # Page Six
+    "https://www.justjared.com/feed/",                   # JustJared
+    "https://hollywoodlife.com/feed/",                   # HollywoodLife
+    "https://bossip.com/feed/",                          # Bossip
 ]
 
 NUM_CANDIDATES     = 12                 # تعداد کاندیدای ارسالی به سردبیر
@@ -466,9 +463,11 @@ def tg_send_video(data, caption):
 
 
 def publish(post, chosen):
-    """اولویتِ رسانه: ویدیو > عکس > فقط‌متن."""
+    """اولویتِ رسانه: ویدیو > عکسِ باکیفیت > فقط‌متن.
+    برای کیفیتِ بهتر، اول عکسِ full-resِ صفحه (og:image) رو امتحان می‌کنه،
+    بعد عکسِ فید."""
     video_url = chosen.get("feed_video") or chosen.get("og_video")
-    image_url = chosen.get("feed_image") or chosen.get("og_image")
+    image_url = chosen.get("og_image") or chosen.get("feed_image")
     if video_url:
         data = download_capped(video_url, MAX_VIDEO_BYTES)
         if data and tg_send_video(data, post):
