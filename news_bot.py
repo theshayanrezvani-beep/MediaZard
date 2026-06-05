@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-ربات سرگرمی و محتوای زرد تلگرام (نسخه ۱۸+)
+ربات سرگرمی و محتوای زرد تلگرام (نسخه ۱۸+ نهایی)
 """
 
 import os
@@ -24,7 +24,7 @@ SIGNATURE = "@MediaZard | مدیا زرد"
 AI_MODEL    = "openai/gpt-4o-mini"
 AI_ENDPOINT = "https://models.github.ai/inference/chat/completions"
 
-# منابع قوی — تمرکز روی محتوای بصری مثبت ۱۸+ و پورنوگرافی
+# منابع قوی با تمرکز بالا روی محتوای بصری ۱۸+
 RSS_FEEDS = [
     "https://www.tmz.com/rss.xml",
     "https://pagesix.com/feed/",
@@ -37,34 +37,32 @@ RSS_FEEDS = [
     "https://www.the-sun.com/feed/",
     "https://radaronline.com/feed/",
     "https://www.usmagazine.com/feed/",
-    # منابع بیشتر بصری و ۱۸+
+    "https://www.maxim.com/feed",
+    "https://www.playboy.com/rss",
     "https://www.cosmopolitan.com/rss/",
     "https://fashionista.com/feed",
-    "https://www.maxim.com/feed",                    # Maxim (مردانه + بصری)
-    "https://www.playboy.com/rss",                   # Playboy
-    # منابع پورنوگرافی / Adult (RSS عمومی)
-    "https://www.pornhub.com/rss",                   # Pornhub (اگر RSS داشته باشه)
-    "https://www.xvideos.com/rss", 
+    # Adult / پورنوگرافی (RSS عمومی)
+    "https://www.pornhub.com/rss",
+    "https://www.xvideos.com/rss",
     "https://www.xnxx.com/rss",
-    "https://www.redtube.com/rss",
-    "https://www.youporn.com/rss",
 ]
-NUM_CANDIDATES     = 20   # افزایش دادم تا انتخاب بهتر باشه
+
+NUM_CANDIDATES     = 20
 RECENT_TITLES_KEEP = 40
 SEEN_IDS_KEEP      = 1000
 ARTICLE_MAX_CHARS  = 1800
 MAX_VIDEO_BYTES    = 50 * 1024 * 1024
-JACCARD_THRESHOLD  = 0.65
+JACCARD_THRESHOLD  = 0.65    # شل‌تر برای ارسال بیشتر
 OVERLAP_THRESHOLD  = 0.7
 
 STATE_FILE = "seen.json"
 UA = {"User-Agent": "Mozilla/5.0 (compatible; fun-bot/1.0; +https://github.com)"}
 
-# ═══════════════════════════ پرامپت سردبیر (صمیمی و خودمونی) ═══════════════════════════
+# ═══════════════════════════ پرامپت سردبیر ═══════════════════════════
 SYSTEM_PROMPT = """تو سردبیر یه کانال زرد ۱۸+ تلگرامی هستی. مخاطب‌ها عاشق محتوای بصری جذاب و داغ هستن.
 
 اولویت انتخاب:
-۱) هر سوژه بصری قوی ۱۸+ (مدل، استایل سکسی، ویدیو و عکس داغ، پورنوگرافی، سلبریتی)
+۱) سوژه‌های بصری قوی ۱۸+ (مدل، استایل سکسی، عکس و ویدیو داغ، پورنوگرافی، سلبریتی)
 ۲) حاشیه رابطه، جدایی، استایل، بدن
 ۳) هرچیزی که عکس یا ویدیو خوب داشته باشه
 
@@ -74,8 +72,7 @@ SYSTEM_PROMPT = """تو سردبیر یه کانال زرد ۱۸+ تلگرامی
 با منبع شروع کن و بگو چی تو عکس/ویدیو هست.
 ایموجي: 🔥😍❤️💦✨
 
-تقریبا همیشه یه سوژه انتخاب کن مگر اینکه واقعاً بی‌کیفیت باشه.
-hot=true فقط برای سوژه‌های خیلی خوب و وایرال.
+تقریبا همیشه یه سوژه انتخاب کن مگر واقعاً بی‌کیفیت باشه.
 
 خروجی فقط JSON:
 {"index": <شماره یا -1>, "title_fa": "...", "summary_fa": "...", "hot": true/false}"""
@@ -88,16 +85,8 @@ STOPWORDS = set((
     "it its has have had will would new says said after over amid star says how why"
 ).split())
 
-HOT_KW = ["viral", "scandal", "divorce", "breakup", "dating", "pregnant", "leaked", "drama", "وایرال", "جدایی", "حاشیه", "سکسی", "استایل"]
+HOT_KW = ["viral", "scandal", "divorce", "breakup", "dating", "pregnant", "leaked", "drama", "وایرال", "جدایی", "حاشیه", "سکسی", "استایل", "پورن"]
 
-# (بقیه توابع بدون تغییر — فقط RSS و پرامپت و NUM_CANDIDATES تغییر کرده)
-
-# ... (بقیه کدت رو نگه دار — فقط RSS_FEEDS، SYSTEM_PROMPT و NUM_CANDIDATES رو بروز کن)
-
-def main():
-    # ... (main فعلی‌ات)
-    # فقط NUM_CANDIDATES رو به 15 تغییر دادم
-    pass
 # ═══════════════════════════ توابع پایه ═══════════════════════════
 def load_state():
     try:
@@ -135,18 +124,17 @@ def is_duplicate(title, recent_titles):
         return False
     for rt in recent_titles:
         b = set(tokenize(rt))
-        if not b:
-            continue
+        if not b: continue
         inter = len(a & b)
         union = len(a | b)
-        jacc = inter / union if union else 0.0
+        jacc = inter / union if union else 0
         small = min(len(a), len(b))
-        overlap = inter / small if small else 0.0
+        overlap = inter / small if small else 0
         if jacc >= JACCARD_THRESHOLD or overlap >= OVERLAP_THRESHOLD:
             return True
     return False
 
-# ═══════════════════════════ خواندن رسانه و مقاله ═══════════════════════════
+# ═══════════════════════════ رسانه و مقاله ═══════════════════════════
 def get_entry_media(entry):
     image = None
     videos = []
@@ -170,9 +158,9 @@ def get_all_media(chosen):
     if chosen.get("og_image"): images.append(chosen["og_image"])
     if chosen.get("og_video"): videos.append(chosen["og_video"])
     
-    images = list(dict.fromkeys([u for u in images if u]))
-    videos = list(dict.fromkeys([u for u in videos if u]))
-    return images[:5], videos[:2]
+    images = list(dict.fromkeys([u for u in images if u and u.startswith("http")]))
+    videos = list(dict.fromkeys([u for u in videos if u and u.startswith("http")]))
+    return images[:6], videos[:2]
 
 def _meta(page, prop):
     p = re.escape(prop)
@@ -223,7 +211,7 @@ def gather_candidates(seen):
     items.sort(key=lambda x: x["ts"], reverse=True)
     return items[:NUM_CANDIDATES]
 
-# ═══════════════════════════ توابع ارسال به تلگرام ═══════════════════════════
+# ═══════════════════════════ ارسال تلگرام ═══════════════════════════
 def tg_url(method):
     return f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/{method}"
 
@@ -248,8 +236,7 @@ def tg_send_photo(photo_url, caption):
             requests.post(tg_url("sendPhoto"), data={"chat_id": CHANNEL, "photo": photo_url}, timeout=30)
             return tg_send_message(caption)
         r = requests.post(tg_url("sendPhoto"), data={
-            "chat_id": CHANNEL, "photo": photo_url,
-            "caption": caption, "parse_mode": "HTML"
+            "chat_id": CHANNEL, "photo": photo_url, "caption": caption, "parse_mode": "HTML"
         }, timeout=30)
         ok = r.json().get("ok", False)
         if not ok:
@@ -287,109 +274,34 @@ def tg_send_video(data, caption):
         return False
 
 def publish(post, chosen):
-    """ارسال همه رسانه‌ها (چند عکس + ویدیو)"""
+    """ارسال همه رسانه‌ها — اول ویدیو بعد عکس"""
     images, videos = get_all_media(chosen)
     success = False
     original_post = post
 
+    print(f"📸 پیدا شد: {len(images)} عکس | {len(videos)} ویدیو")
+
+    # ویدیوها
     for vid_url in videos:
         data = download_capped(vid_url, MAX_VIDEO_BYTES)
         if data and tg_send_video(data, post):
             success = True
             post = ""
+            print("✅ ویدیو ارسال شد")
 
+    # عکس‌ها
     for img_url in images:
         if tg_send_photo(img_url, post if not success else ""):
             success = True
             post = ""
+            print("✅ عکس ارسال شد")
 
     if not success:
+        print("📝 فقط متن ارسال شد")
         return tg_send_message(original_post)
     return True
 
-# ═══════════════════════════ سردبیر هوش مصنوعی ═══════════════════════════
-def ai_editor(candidates, recent):
-    if not GITHUB_TOKEN:
-        return None
-    lines = []
-    for i, c in enumerate(candidates):
-        body = c.get("article") or c.get("summary") or ""
-        lines.append(f"[{i}] منبع: {c['source']}\nتیتر: {c['title']}\nمتن: {body[:1000]}\n")
-    recent_block = "\n".join(f"- {t}" for t in recent[-15:]) or "(خالی)"
-    user = (
-        "پست‌های اخیراً منتشرشده (برای جلوگیری از تکرار):\n"
-        f"{recent_block}\n\n"
-        "سوژه‌های تازه (کاندیدها):\n"
-        f"{chr(10).join(lines)}\n"
-        "فقط یه JSON برگردان."
-    )
-    try:
-        r = requests.post(
-            AI_ENDPOINT,
-            headers={"Authorization": f"Bearer {GITHUB_TOKEN}", "Content-Type": "application/json"},
-            json={
-                "model": AI_MODEL,
-                "temperature": 0.8,
-                "messages": [
-                    {"role": "system", "content": SYSTEM_PROMPT},
-                    {"role": "user", "content": user},
-                ],
-            },
-            timeout=60,
-        )
-        r.raise_for_status()
-        content = r.json()["choices"][0]["message"]["content"].strip()
-        content = re.sub(r"^```(?:json)?|```$", "", content, flags=re.M).strip()
-        m = re.search(r"\{.*\}", content, re.S)
-        if m:
-            content = m.group(0)
-        data = json.loads(content)
-        return {
-            "index": int(data.get("index", -1)),
-            "title_fa": (data.get("title_fa") or "").strip(),
-            "summary_fa": (data.get("summary_fa") or "").strip(),
-            "hot": bool(data.get("hot", False)),
-        }
-    except Exception as e:
-        print(f"⚠️ خطای AI: {e}")
-        return None
-
-# ═══════════════════════════ روش پشتیبان ═══════════════════════════
-def fa_translate(text):
-    if not text:
-        return ""
-    if is_persian(text):
-        return text
-    try:
-        from deep_translator import GoogleTranslator
-        return GoogleTranslator(source="auto", target="fa").translate(text[:1500])
-    except Exception:
-        return text
-
-def fallback_choice(candidates, recent):
-    best, best_score = None, -1.0
-    for i, c in enumerate(candidates):
-        if is_duplicate(c["title"], recent):
-            continue
-        text = (c["title"] + " " + c.get("article", "")).lower()
-        score = sum(2 for kw in HOT_KW if kw in text)
-        score += max(0, len(candidates) - i) * 0.1
-        if score > best_score:
-            best_score, best = score, (i, c)
-    if not best:
-        return None
-    i, c = best
-    body = c.get("article") or c.get("summary") or c["title"]
-    hot = any(kw in (c["title"] + " " + c.get("article", "")).lower() for kw in HOT_KW)
-    src = c["source"].split(" - ")[0].split(" | ")[0]
-    return {
-        "index": i,
-        "title_fa": fa_translate(c["title"]),
-        "summary_fa": f"{src}: " + fa_translate(body[:600]),
-        "hot": hot,
-    }
-
-# ═══════════════════════════ ساخت پست و main ═══════════════════════════
+# ═══════════════════════════ بقیه توابع ═══════════════════════════
 def build_post(choice):
     title = html.escape(choice["title_fa"])
     summary = html.escape(choice["summary_fa"])
@@ -452,6 +364,67 @@ def main():
     seen.add(chosen["id"])
     save_state({"seen": list(seen), "recent": recent})
     print("💾 ذخیره شد")
+
+# ═══════════════════════════ سردبیر هوش مصنوعی ═══════════════════════════
+def ai_editor(candidates, recent):
+    if not GITHUB_TOKEN:
+        return None
+    lines = []
+    for i, c in enumerate(candidates):
+        body = c.get("article") or c.get("summary") or ""
+        lines.append(f"[{i}] منبع: {c['source']}\nتیتر: {c['title']}\nمتن: {body[:1000]}\n")
+    recent_block = "\n".join(f"- {t}" for t in recent[-15:]) or "(خالی)"
+    user = f"پست‌های اخیر:\n{recent_block}\n\nسوژه‌های تازه:\n{chr(10).join(lines)}\nفقط JSON بده."
+    try:
+        r = requests.post(
+            AI_ENDPOINT,
+            headers={"Authorization": f"Bearer {GITHUB_TOKEN}", "Content-Type": "application/json"},
+            json={"model": AI_MODEL, "temperature": 0.7, "messages": [
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": user}
+            ]},
+            timeout=60,
+        )
+        r.raise_for_status()
+        content = r.json()["choices"][0]["message"]["content"].strip()
+        content = re.sub(r"^```(?:json)?|```$", "", content, flags=re.M).strip()
+        m = re.search(r"\{.*\}", content, re.S)
+        if m: content = m.group(0)
+        data = json.loads(content)
+        return {
+            "index": int(data.get("index", -1)),
+            "title_fa": (data.get("title_fa") or "").strip(),
+            "summary_fa": (data.get("summary_fa") or "").strip(),
+            "hot": bool(data.get("hot", False)),
+        }
+    except Exception as e:
+        print(f"⚠️ خطای AI: {e}")
+        return None
+
+def fa_translate(text):
+    if not text: return ""
+    if is_persian(text): return text
+    try:
+        from deep_translator import GoogleTranslator
+        return GoogleTranslator(source="auto", target="fa").translate(text[:1500])
+    except:
+        return text
+
+def fallback_choice(candidates, recent):
+    best, best_score = None, -1.0
+    for i, c in enumerate(candidates):
+        if is_duplicate(c["title"], recent): continue
+        text = (c["title"] + " " + c.get("article", "")).lower()
+        score = sum(2 for kw in HOT_KW if kw in text)
+        score += max(0, len(candidates) - i) * 0.1
+        if score > best_score:
+            best_score, best = score, (i, c)
+    if not best: return None
+    i, c = best
+    body = c.get("article") or c.get("summary") or c["title"]
+    hot = any(kw in (c["title"] + " " + c.get("article", "")).lower() for kw in HOT_KW)
+    src = c["source"].split(" - ")[0].split(" | ")[0]
+    return {"index": i, "title_fa": fa_translate(c["title"]), "summary_fa": f"{src}: " + fa_translate(body[:600]), "hot": hot}
 
 if __name__ == "__main__":
     main()
