@@ -24,6 +24,7 @@ SIGNATURE = "@MediaZard | مدیا زرد"
 AI_MODEL    = "openai/gpt-4o-mini"
 AI_ENDPOINT = "https://models.github.ai/inference/chat/completions"
 
+# منابع قوی ۱۸+
 RSS_FEEDS = [
     "https://www.tmz.com/rss.xml", "https://pagesix.com/feed/", 
     "https://www.dailymail.co.uk/tvshowbiz/index.rss", "https://www.justjared.com/feed/",
@@ -104,7 +105,7 @@ def is_duplicate(title, recent_titles):
             return True
     return False
 
-# ═══════════════════════════ رسانه ═══════════════════════════
+# ═══════════════════════════ رسانه و مقاله ═══════════════════════════
 def get_entry_media(entry):
     image = None
     videos = []
@@ -128,21 +129,56 @@ def get_all_media(chosen):
     videos = list(dict.fromkeys([u for u in videos if u and u.startswith("http")]))
     return images[:6], videos[:2]
 
-def download_file(url, max_size):
-    try:
-        with requests.get(url, headers=UA, stream=True, timeout=40) as r:
-            r.raise_for_status()
-            if int(r.headers.get("Content-Length", 0)) > max_size:
-                return None
-            buf = b""
-            for chunk in r.iter_content(65536):
-                buf += chunk
-                if len(buf) > max_size: return None
-            return buf
-    except Exception:
-        return None
+def _meta(page, prop):
+    p = re.escape(prop)
+    m = re.search(r'<meta[^>]+(?:property|name)=["\']' + p + r'["\'][^>]+content=["\']([^"\']+)["\']', page, re.I)
+    if not m:
+        m = re.search(r'<meta[^>]+content=["\']([^"\']+)["\'][^>]+(?:property|name)=["\']' + p + r'["\']', page, re.I)
+    return html.unescape(m.group(1)) if m else None
 
-# ═══════════════════════════ ارسال ═══════════════════════════
+def extract_article(url):
+    try:
+        r = requests.get(url, headers=UA, timeout=12)
+        r.raise_for_status()
+        page = r.text
+    except Exception:
+        return "", None, None
+    paras = re.findall(r"<p[^>]*>(.*?)</p>", page, re.S | re.I)
+    parts = [html.unescape(re.sub(r"<[^>]+>", "", p)).strip() for p in paras if len(html.unescape(re.sub(r"<[^>]+>", "", p)).strip()) > 40]
+    article = " ".join(parts)[:ARTICLE_MAX_CHARS]
+    og_image = _meta(page, "og:image")
+    og_video = _meta(page, "og:video") or _meta(page, "og:video:url")
+    return article, og_image, og_video
+
+def gather_candidates(seen):
+    items = []
+    for url in RSS_FEEDS:
+        try:
+            fp = feedparser.parse(url, request_headers=UA)
+        except Exception:
+            continue
+        source = fp.feed.get("title", domain_of(url))
+        for e in fp.entries:
+            link = e.get("link")
+            if not link: continue
+            uid = hashlib.md5((e.get("id") or link).encode()).hexdigest()
+            if uid in seen: continue
+            title = (e.get("title") or "").strip()
+            if not title: continue
+            ts = 0
+            if e.get("published_parsed"):
+                ts = time.mktime(e.published_parsed)
+            fimg, fvid = get_entry_media(e)
+            items.append({
+                "id": uid, "source": source, "title": title, "link": link,
+                "summary": re.sub(r"<[^>]+>", "", e.get("summary", "")).strip()[:500],
+                "ts": ts, "feed_image": fimg, "feed_video": fvid,
+            })
+    items = list({it["id"]: it for it in items}.values())
+    items.sort(key=lambda x: x["ts"], reverse=True)
+    return items[:NUM_CANDIDATES]
+
+# ═══════════════════════════ ارسال تلگرام ═══════════════════════════
 def tg_url(method):
     return f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/{method}"
 
@@ -179,56 +215,102 @@ def tg_send_video(data, caption):
     except Exception:
         return False
 
+def download_file(url, max_size, retries=2):
+    """دانلود با retry و لاگ بهتر"""
+    for attempt in range(retries + 1):
+        try:
+            print(f"📥 دانلود تلاش {attempt+1}: {url[:100]}...")
+            with requests.get(url, headers=UA, stream=True, timeout=50) as r:
+                r.raise_for_status()
+                cl = int(r.headers.get("Content-Length", 0))
+                if cl > max_size:
+                    print(f"❌ فایل خیلی بزرگ ({cl//(1024*1024)} MB)")
+                    return None
+                buf = b""
+                for chunk in r.iter_content(128 * 1024):
+                    buf += chunk
+                    if len(buf) > max_size:
+                        print("❌ حجم دانلود بیشتر از حد شد")
+                        return None
+                print(f"✅ دانلود موفق ({len(buf)//(1024*1024)} MB)")
+                return buf
+        except Exception as e:
+            print(f"⚠️ خطا در دانلود ({attempt+1}): {e}")
+            if attempt == retries:
+                return None
+            time.sleep(2)
+    return None
+
 def publish(post, chosen):
     images, videos = get_all_media(chosen)
     success = False
     original_post = post
 
-    print(f"📸 رسانه پیدا شد: {len(images)} عکس | {len(videos)} ویدیو")
+    print(f"📸 رسانه پیدا شد → {len(images)} عکس | {len(videos)} ویدیو")
 
-    # ویدیو
+    # اول ویدیوها
     for vid_url in videos:
         data = download_file(vid_url, MAX_VIDEO_BYTES)
-        if data and tg_send_video(data, post):
-            success = True
-            post = ""
-            print("✅ ویدیو ارسال شد")
+        if data:
+            if tg_send_video(data, post):
+                success = True
+                post = ""
+                print("✅ ویدیو با موفقیت ارسال شد")
+            else:
+                print("❌ ارسال ویدیو به تلگرام ناموفق")
+        else:
+            print("❌ دانلود ویدیو ناموفق")
 
-    # عکس‌ها (دانلود شده)
+    # بعد عکس‌ها
     for img_url in images:
         data = download_file(img_url, MAX_IMAGE_BYTES)
-        if data and tg_send_photo_data(data, post if not success else ""):
-            success = True
-            post = ""
-            print("✅ عکس ارسال شد")
+        if data:
+            if tg_send_photo_data(data, post if not success else ""):
+                success = True
+                post = ""
+                print("✅ عکس ارسال شد")
+            else:
+                print("❌ ارسال عکس ناموفق")
 
     if not success:
         print("📝 فقط متن ارسال شد")
         return tg_send_message(original_post)
+    
     return True
-
 def build_post(choice):
     title = html.escape(choice["title_fa"])
     summary = html.escape(choice["summary_fa"])
     lead = "🔥" if choice.get("hot", False) else "✨"
     return f"{lead} <b>{title}</b>\n\n<blockquote expandable>{summary}</blockquote>\n\n{SIGNATURE}"
 
-# AI و Fallback و main (کامل)
+# AI و Fallback
 def ai_editor(candidates, recent):
     if not GITHUB_TOKEN: return None
     lines = [f"[{i}] منبع: {c['source']}\nتیتر: {c['title']}\nمتن: {(c.get('article') or c.get('summary') or '')[:1000]}" for i, c in enumerate(candidates)]
     recent_block = "\n".join(f"- {t}" for t in recent[-15:]) or "(خالی)"
     user = f"پست‌های اخیر:\n{recent_block}\n\nسوژه‌های تازه:\n{chr(10).join(lines)}\nفقط JSON بده."
     try:
-        r = requests.post(AI_ENDPOINT, headers={"Authorization": f"Bearer {GITHUB_TOKEN}", "Content-Type": "application/json"},
-                          json={"model": AI_MODEL, "temperature": 0.7, "messages": [{"role": "system", "content": SYSTEM_PROMPT}, {"role": "user", "content": user}]}, timeout=60)
+        r = requests.post(
+            AI_ENDPOINT,
+            headers={"Authorization": f"Bearer {GITHUB_TOKEN}", "Content-Type": "application/json"},
+            json={"model": AI_MODEL, "temperature": 0.7, "messages": [
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": user}
+            ]},
+            timeout=60,
+        )
         r.raise_for_status()
         content = r.json()["choices"][0]["message"]["content"].strip()
         content = re.sub(r"^```(?:json)?|```$", "", content, flags=re.M).strip()
         m = re.search(r"\{.*\}", content, re.S)
         if m: content = m.group(0)
         data = json.loads(content)
-        return {"index": int(data.get("index", -1)), "title_fa": (data.get("title_fa") or "").strip(), "summary_fa": (data.get("summary_fa") or "").strip(), "hot": bool(data.get("hot", False))}
+        return {
+            "index": int(data.get("index", -1)),
+            "title_fa": (data.get("title_fa") or "").strip(),
+            "summary_fa": (data.get("summary_fa") or "").strip(),
+            "hot": bool(data.get("hot", False)),
+        }
     except Exception as e:
         print(f"⚠️ خطای AI: {e}")
         return None
@@ -314,12 +396,6 @@ def main():
     seen.add(chosen["id"])
     save_state({"seen": list(seen), "recent": recent})
     print("💾 ذخیره شد")
-
-def build_post(choice):
-    title = html.escape(choice["title_fa"])
-    summary = html.escape(choice["summary_fa"])
-    lead = "🔥" if choice.get("hot", False) else "✨"
-    return f"{lead} <b>{title}</b>\n\n<blockquote expandable>{summary}</blockquote>\n\n{SIGNATURE}"
 
 if __name__ == "__main__":
     main()
